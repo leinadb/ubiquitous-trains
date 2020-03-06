@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="en" xmlns="http://www.w3.org/1999/html">
+<head>
+    <meta charset="utf-8"/>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
+    <title>Ubiquitous Trains</title>
+    <meta name="description" content=""/>
+    <meta name="viewport" content="width=device-width"/>
+    <base href="/"/>
+    <link rel="stylesheet" type="text/css" href="/webjars/bootstrap/css/bootstrap.min.css"/>
+    <script type="text/javascript" src="/webjars/jquery/jquery.min.js"></script>
+    <script type="text/javascript" src="/webjars/bootstrap/js/bootstrap.min.js"></script>
+    <script type="text/javascript" src="/webjars/js-cookie/js.cookie.js"></script>
+    <script type=text/javascript">
+    </script>
+    <script type="text/javascript">
+    $.ajaxSetup({
+            beforeSend : function(xhr, settings) {
+              if (settings.type == 'POST' || settings.type == 'PUT'
+                  || settings.type == 'DELETE') {
+                if (!(/^http:.*/.test(settings.url) || /^https:.*/
+                    .test(settings.url))) {
+                  // Only send the token to relative URLs i.e. locally.
+                  xhr.setRequestHeader("X-XSRF-TOKEN", Cookies
+                      .get('XSRF-TOKEN'));
+                }
+              }
+            }
+          });
+    $.get("/user/oauth", function(data) {
+        if(data.login){
+            $("#login").html(data.login);
+        }
+        if(data.email){
+            $("#email").html(data.email);
+        }
+        if(data.name){
+            $("#name").html(data.name);
+        }
+    });
+
+    $.get("/user", function(data) {
+        if(data.login){
+            $("#login").html(data.login);
+        }
+        if(data.email){
+            $("#email").html(data.email);
+        }
+        if(data.name){
+            $("#name").html(data.name);
+        }
+    });
+
+    var logout = function() {
+        $.post("/logout", function() {
+            $("#login").html('');
+            $("#email").html('');
+            $("#name").html('');
+        })
+        return true;
+    }
+    </script>
+    <!--    websockets-->
+    <script src="/webjars/stomp-websocket/stomp.min.js"></script>
+    <script src="/webjars/sockjs-client/sockjs.min.js"></script>
+    <script type="text/javascript">
+        var stompClient = null;
+
+        function setConnected(connected) {
+            $("#connect").prop("disabled", connected);
+            $("#disconnect").prop("disabled", !connected);
+            if (connected) {
+                $("#train_log").show();
+            }
+            else {
+                $("#train_log").hide();
+            }
+            $("#board_of_trains").html("");
+        }
+
+        function connect() {
+            var socket = new SockJS('/train-websocket');
+            stompClient = Stomp.over(socket);
+            stompClient.connect({}, function (frame) {
+                setConnected(true);
+                console.log('Connected: ' + frame);
+                stompClient.subscribe('/topic/trains', function (train) {
+                        drawTrain(train.body);
+                        showTrain(train.body);
+                });
+            });
+        }
+
+        function disconnect() {
+            if (stompClient !== null) {
+                stompClient.disconnect();
+            }
+            setConnected(false);
+            console.log("Disconnected");
+        }
+
+        function showTrain(trainBody) {
+            var trainData = JSON.parse(trainBody)
+            $("#board_of_trains").append("<tr><td>" + trainData.name + " " + trainData.destination + " " + trainData.speed + " " + trainData.coordinates + "</td></tr>");
+        }
+
+        $(function () {
+            $("form").on('submit', function (e) {
+                e.preventDefault();
+            });
+            $( "#connect" ).click(function() { connect(); });
+            $( "#disconnect" ).click(function() { disconnect(); });
+        });
+
+    </script>
+    <!--    end websockets-->
+    <!--    WebGL-->
+    <script src="http://www.webglearth.com/v2/api.js"></script>
+    <script>
+    var earth = null;
+      function initializeMap() {
+        earth = new WE.map('earth_div');
+        WE.tileLayer('http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(earth);
+      }
+
+      function clearMap(){
+          document.getElementById('earth_div').innerHTML = "";
+      }
+
+      function drawTrain(trainBody){
+          var trainData = JSON.parse(trainBody)
+          var trainMarker = WE.marker([trainData.coordinates[0], trainData.coordinates[1]]).addTo(earth);
+          trainMarker.bindPopup("<b>" + trainData.name + "</b><br>" + "Destination: " + trainData.destination + "<br> Speed: " + trainData.speed + "<br> Coordinates: " + trainData.coordinates, {maxWidth: 120, closeButton: false});
+      }
+    </script>
+    <!--    end WebGL-->
+</head>
+<div class="d-flex align-items-center justify-content-center">
+    <h1>Ubiquitous Trains</h1><br/>
+</div>
+<div>
+    <div class="d-flex align-items-center justify-content-center">
+        <p style="text-align:right">
+            Logged in as: <span id="login"></span><br/>
+            Name : <span id="name"></span><br/>
+            Email : <span id="email"></span><br/>
+        </p><br>
+    </div>
+    <div class="d-flex align-items-center justify-content-center">
+        <button id="connect" onClick="initializeMap()" class="btn btn-success btn-xs" type="submit">Websocket Connect</button>
+        <button id="disconnect" onClick="clearMap()" class="btn btn-danger btn-xs" type="submit" disabled="disabled">Websocket Disconnect</button>
+        <button onClick="logout()" class="btn btn-danger btn-xs">Logout</button>
+    </div>
+
+    <!--    websockets-->
+    <div id="main-content" class="container">
+        <div class="row">
+            <div class="col-md-6">
+                <table id="train_log" class="table table-striped">
+                    <tbody id="board_of_trains">
+                    </tbody>
+                </table>
+            </div>
+            <div class="col-md-6">
+                <div id="earth_div"></div>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>
