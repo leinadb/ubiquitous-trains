@@ -22,7 +22,7 @@
         <mockito.version>3.3.0</mockito.version>
         <sockjs.client.version>1.0.2</sockjs.client.version>
         <spring.test.version>5.2.4.RELEASE</spring.test.version>
-        <spring.boot.version>2.2.4.RELEASE</spring.boot.version>
+        <spring.boot.version>2.5.12</spring.boot.version>
         <spring.security.version>5.2.1.RELEASE</spring.security.version>
         <stomp.websocket.version>2.3.3</stomp.websocket.version>
         <webjars.bootstrap.version>4.3.1</webjars.bootstrap.version>
